@@ -1,4 +1,6 @@
 #include <gb/gb.h>
+#include<stdio.h>
+#include <gb/font.h>
 
 
 #define MASK_00000001 0x01
@@ -43,21 +45,21 @@ const unsigned char cells_data [] = {
 
    // First block row, 0 <= i <= (7 * 2 + 1)
    // Block 0
-    0x88,0x88, // cells 0,0 -> 3,3
-    0x00,0x00, // cells 4,0 -> 7,3
-    0x00,0x00, // cells 8,0 -> 11,3
-    0x00,0x00, // cells 12,0 -> 15,3
-    0x00,0x00, // cells 16,0 -> 19,3
-    0x00,0x00, // cells 20,0 -> 23,3
-    0x00,0x00, // cells 24,0 -> 27,3
-    0x00,0x00, // cells 28,0 -> 31,3
+    0x00,0x01, // cells 0,0 -> 3,3
+    0x02,0x03, // cells 4,0 -> 7,3
+    0x04,0x05, // cells 8,0 -> 11,3
+    0x06,0x07, // cells 12,0 -> 15,3
+    0x08,0x09, // cells 16,0 -> 19,3
+    0x0a,0x0b, // cells 20,0 -> 23,3
+    0x0c,0x0d, // cells 24,0 -> 27,3
+    0x0e,0x0f, // cells 28,0 -> 31,3
 
     // Second block row, 8 * 2 <= i <= (15 * 2 + 1)
     // Block 8
-    0x00,0x00, // cells 0,4 -> 3,7
-    0x00,0x00, // cells 4,4 -> 7,7
-    0x00,0x00, // cells 8,4 -> 11,7
-    0x00,0x00, // cells 12,4 -> 15,7
+    0xFe,0x09, // cells 0,4 -> 3,7
+    0x0a,0x0b, // cells 4,4 -> 7,7
+    0x0c,0x0d, // cells 8,4 -> 11,7
+    0x0e,0x0f, // cells 12,4 -> 15,7
     0x00,0x00, // cells 16,4 -> 19,7
     0x00,0x00, // cells 20,4 -> 23,7
     0x00,0x00, // cells 24,4 -> 27,7
@@ -135,7 +137,7 @@ const unsigned char life_tile_index [] = { 0x01 };
 
 
 unsigned int calculate_cell_block(unsigned int coord){
-    // Since cell blokcs are 4x4 (square), the same method may be used to calculate 
+    // Since cell blocks are 4x4 (square), the same method may be used to calculate 
     // their block reguardless of whether x or y
     return coord / 4;
 }
@@ -162,22 +164,41 @@ unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off,
     unsigned int result;
     unsigned int mask;
 
+    //printf("from inside, xoff is %u", x_off);
+    if(x_off == 0u){
+        mask = MASK_10000000;
+    } else if(x_off == 1u){
+        mask = MASK_01000000;
+    } else if(x_off == 2u){
+        mask = MASK_00100000;
+    } else if(x_off == 3u){
+        //printf("gotcha");
+        mask = MASK_00010000;
+    }
+    /*
     switch(x_off) {
-        case 0:
+        case 0x00:
             mask = MASK_10000000;
             break;
-        case 1:
+        case 0x01:
+        printf("nuber 3");
             mask = MASK_01000000;
             break;
-        case 2:
+        case 0x02:
+        printf("nuber 2");
             mask = MASK_00100000;
             break;
-        case 3:
+        case 3u:
+        printf("yeah it's me");
             mask = MASK_00010000;
             break;
+        default:
+        printf("howd you get here? %u", x_off == 3u);
+            break;
     };
+    */
 
-    if(y_off == 1 || y_off == 3)
+    if(y_off == 0x01 || y_off == 0x03)
     {
         // In second half of char
         //printf("computed mask: %u \n", mask >> 4);
@@ -185,7 +206,7 @@ unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off,
     }
 
     // Top half or bottom half of Block
-    cell_index = y_off < 2 ? 0 : 1;
+    cell_index = y_off < 0x02 ? 0x00 : 0x01;
 
     //printf("half-block cell index: %u \n", cell_index);
     //printf("mask: %u \n", mask);
@@ -219,10 +240,17 @@ void main(void)
 {
     unsigned int block_index;
 
+    font_t ibm_font, italic_font, min_font;
+    font_init();
+
+    ibm_font = font_load(font_ibm);  /* 96 tiles */
+    font_set(ibm_font);
+    /* First, init the font system */
+
     //font_t ibm_font, italic_font, min_font;
 
 
-HIDE_WIN;
+    HIDE_WIN;
     //SPRITES_8x16;   
     set_bkg_data(0x00, 0x02, background_data);
     for(i = 0; i < 32; i++)
@@ -252,8 +280,7 @@ HIDE_WIN;
     /* IBM font */
     //font_set(ibm_font);
     //printf("Font demo.\n\n");
-    block_index = get_block_index(8,1);
-    //printf("try get cell : %u \n", get_cell(cells_data, 5,2));
+    block_index = get_block_index(0,0);
 
 
     for(i; i < 32; i++)
@@ -269,6 +296,9 @@ HIDE_WIN;
     };
     i = 0;
     
+    
     HIDE_SPRITES;
+    SHOW_BKG;
+    //printf("try get cell : %u   \n", get_cell(cells_data, 7,3));
     SHOW_BKG;
 }
