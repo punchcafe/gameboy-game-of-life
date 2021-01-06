@@ -30,7 +30,7 @@ const unsigned char background_data [] = {
     0x02,0x01,0x27,0xC3,0xB1,0xE5,0xE3,0xF7
 };
 
-const unsigned char cells_data [] = {
+unsigned char cells_data [] = {
 
     /*
     Cells come as 4x4 blocks, represented by two bytes. For example,
@@ -45,21 +45,21 @@ const unsigned char cells_data [] = {
 
    // First block row, 0 <= i <= (7 * 2 + 1)
    // Block 0
-    0x00,0x01, // cells 0,0 -> 3,3
-    0x02,0x03, // cells 4,0 -> 7,3
-    0x04,0x05, // cells 8,0 -> 11,3
-    0x06,0x07, // cells 12,0 -> 15,3
-    0x08,0x09, // cells 16,0 -> 19,3
-    0x0a,0x0b, // cells 20,0 -> 23,3
-    0x0c,0x0d, // cells 24,0 -> 27,3
-    0x0e,0x0f, // cells 28,0 -> 31,3
+    0x00,0x00, // cells 0,0 -> 3,3
+    0x00,0x00, // cells 4,0 -> 7,3
+    0x00,0x00, // cells 8,0 -> 11,3
+    0x00,0x00, // cells 12,0 -> 15,3
+    0x00,0x00, // cells 16,0 -> 19,3
+    0x00,0x00, // cells 20,0 -> 23,3
+    0x00,0x00, // cells 24,0 -> 27,3
+    0x00,0x00, // cells 28,0 -> 31,3
 
     // Second block row, 8 * 2 <= i <= (15 * 2 + 1)
     // Block 8
-    0xFe,0x09, // cells 0,4 -> 3,7
-    0x0a,0x0b, // cells 4,4 -> 7,7
-    0x0c,0x0d, // cells 8,4 -> 11,7
-    0x0e,0x0f, // cells 12,4 -> 15,7
+    0x00,0x00, // cells 0,4 -> 3,7
+    0x00,0x00, // cells 4,4 -> 7,7
+    0x00,0x00, // cells 8,4 -> 11,7
+    0x00,0x00, // cells 12,4 -> 15,7
     0x00,0x00, // cells 16,4 -> 19,7
     0x00,0x00, // cells 20,4 -> 23,7
     0x00,0x00, // cells 24,4 -> 27,7
@@ -157,14 +157,8 @@ unsigned int offset_from_block(unsigned int coord){
     return coord % 4;
 }
 
-unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off, unsigned int y_off)
-{
-    // GBDK note, seem to need to declare scope variables at top, otherwise breaks
-    unsigned int cell_index;
-    unsigned int result;
+unsigned int get_single_bit_mask(unsigned int x_off, unsigned int y_off){
     unsigned int mask;
-
-    //printf("from inside, xoff is %u", x_off);
     if(x_off == 0u){
         mask = MASK_10000000;
     } else if(x_off == 1u){
@@ -175,36 +169,41 @@ unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off,
         //printf("gotcha");
         mask = MASK_00010000;
     }
-    /*
-    switch(x_off) {
-        case 0x00:
-            mask = MASK_10000000;
-            break;
-        case 0x01:
-        printf("nuber 3");
-            mask = MASK_01000000;
-            break;
-        case 0x02:
-        printf("nuber 2");
-            mask = MASK_00100000;
-            break;
-        case 3u:
-        printf("yeah it's me");
-            mask = MASK_00010000;
-            break;
-        default:
-        printf("howd you get here? %u", x_off == 3u);
-            break;
-    };
-    */
-
-    if(y_off == 0x01 || y_off == 0x03)
-    {
+    if(y_off == 0x01 || y_off == 0x03){
         // In second half of char
         //printf("computed mask: %u \n", mask >> 4);
         mask = mask >> 4;
     }
+    return mask;
+}
 
+unsigned int get_seven_bit_mask(unsigned int x_off, unsigned int y_off){
+    unsigned int mask;
+    if(x_off == 0u){
+        mask = MASK_01111111;
+    } else if(x_off == 1u){
+        mask = MASK_10111111;
+    } else if(x_off == 2u){
+        mask = MASK_11011111;
+    } else if(x_off == 3u){
+        mask = MASK_11101111;
+    }
+    if(y_off == 0x01 || y_off == 0x03){
+        // In second half of char
+        //printf("computed mask: %u \n", mask >> 4);
+        mask = mask >> 4;
+    }
+    return mask;
+}
+
+unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off, unsigned int y_off)
+{
+    // GBDK note, seem to need to declare scope variables at top, otherwise breaks
+    unsigned int cell_index;
+    unsigned int result;
+    unsigned int mask = get_single_bit_mask(x_off, y_off);
+
+    //printf("from inside, xoff is %u", x_off);
     // Top half or bottom half of Block
     cell_index = y_off < 0x02 ? 0x00 : 0x01;
 
@@ -230,6 +229,50 @@ unsigned int get_cell(unsigned char * data, unsigned int x, unsigned int y)
     return get_cell_for_block(&data[block_index], x_off, y_off);
 }
 
+
+void set_cell_high(unsigned char * data, unsigned int x, unsigned int y){
+    int block_index = get_block_index(x,y);
+    unsigned int x_off = offset_from_block(x);
+    unsigned int y_off = offset_from_block(y);
+    unsigned int mask = get_single_bit_mask(x_off, y_off);
+    unsigned char existingData;
+    unsigned char result;
+    //printf("mask: %u", mask);
+
+    if(y_off >= 2u){
+        block_index = block_index + 1u;
+    }
+    //printf("block index: %u", block_index);
+    existingData = data[block_index];
+    result = existingData | mask;
+
+    data[block_index] = result;
+    //printf("existing: %u", existingData);
+    //printf("result: %u", (unsigned int)result);
+    //printf("inblcok: %u", (unsigned int) data[block_index]);
+}
+
+void set_cell_low(unsigned char * data, unsigned int x, unsigned int y){
+    int block_index = get_block_index(x,y);
+    unsigned int x_off = offset_from_block(x);
+    unsigned int y_off = offset_from_block(y);
+    unsigned int mask =  get_seven_bit_mask(x_off, y_off);
+    unsigned char existingData;
+    unsigned char result;
+    //printf("mask: %u", mask);
+
+    if(y_off >= 2u){
+        block_index = block_index + 1u;
+    }
+    //printf("block index: %u", block_index);
+    existingData = data[block_index];
+    result = existingData & mask;
+
+    data[block_index] = result;
+    //printf("existing: %u", existingData);
+    //printf("result: %u", (unsigned int)result);
+    //printf("inblcok: %u", (unsigned int) data[block_index]);
+}
 int i = 0;
 int j = 0;
 // needed because of mid scope initialisation bugs
@@ -253,6 +296,7 @@ void main(void)
     HIDE_WIN;
     //SPRITES_8x16;   
     set_bkg_data(0x00, 0x02, background_data);
+
     for(i = 0; i < 32; i++)
         for(j = 0; j < 32; j++)
             set_bkg_tiles(i, j, 1, 1, no_life_tile_index);
@@ -280,8 +324,24 @@ void main(void)
     /* IBM font */
     //font_set(ibm_font);
     //printf("Font demo.\n\n");
+
+    HIDE_BKG;
+
     block_index = get_block_index(0,0);
 
+    set_cell_high(cells_data, 0,0);
+    set_cell_high(cells_data, 0,1);
+    set_cell_high(cells_data, 0,2);
+    set_cell_high(cells_data, 0,3);
+    set_cell_high(cells_data, 1,0);
+    set_cell_high(cells_data, 1,1);
+    set_cell_high(cells_data, 1,2);
+    set_cell_high(cells_data, 3,3);
+    set_cell_high(cells_data, 2,5);
+    set_cell_high(cells_data, 5,2);
+    set_cell_high(cells_data, 10,10);
+
+    
 
     for(i; i < 32; i++)
     {
@@ -294,11 +354,46 @@ void main(void)
         };
         j = 0;
     };
+    SHOW_BKG;
+    delay(1000u);
+    HIDE_BKG;
     i = 0;
-    
-    
     HIDE_SPRITES;
-    SHOW_BKG;
+    for(i; i < 32; i++)
+    {
+        for(j; j < 32; j++)
+        {
+            set_cell_high(cells_data, i,j);
+            if(get_cell(cells_data, i,j))
+            {   
+                //printf("hi");
+                set_bkg_tiles(i,j,1,1,life_tile_index);
+            }
+        };
+        j = 0;
+    };
+    i = 0;
+    //printf("out");
+SHOW_BKG;
+delay(1000u);
+    for(i; i < 32; i++)
+    {
+        for(j; j < 32; j++)
+        {
+            if(i%2 == 0){
+            set_cell_low(cells_data, i,j);
+            }
+            if(get_cell(cells_data, i,j))
+            {   
+                //printf("hi");
+                set_bkg_tiles(i,j,1,1,life_tile_index);
+            } else {
+                set_bkg_tiles(i,j,1,1,no_life_tile_index);
+            }
+        };
+        j = 0;
+    };
+    i = 0;
     //printf("try get cell : %u   \n", get_cell(cells_data, 7,3));
-    SHOW_BKG;
+    //SHOW_BKG;
 }
