@@ -68,7 +68,7 @@ unsigned char cells_data [] = {
     // Fourt block row, 24 * 2 <= i <= (31 * 2 + 1)
     // Block 24
     0x00,0x00, // cells 0,12 -> 3,15
-    0x00,0x00, // cells 4,12 -> 7,15
+    0x22,0x00, // cells 4,12 -> 7,15
     0x00,0x00, // cells 8,12 -> 11,15
     0x00,0x00, // cells 12,12 -> 15,15
     0x00,0x00, // cells 16,12 -> 19,15
@@ -163,12 +163,118 @@ void invert_cell(){
     {
         // Cell is set high
         set_cell_low(cells_data, cursor_x, cursor_y);
+        // Consider having a reader/writer method, instead of letting draw directly, so that 
+        // screen is always consistent with model at low CPU expense
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
     } else {
         // Cell is set low
         set_cell_high(cells_data, cursor_x, cursor_y);
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
     }
+}
+
+void edit_mode()
+{
+    while(1){
+        x_input = 0;
+        y_input = 0;
+        input = joypad();
+        if(input & J_A){
+            delay(80u);
+            invert_cell();
+        } else{
+            if(input & J_UP)
+            {
+                y_input -= 1;
+            }
+            if (input & J_DOWN)
+            {
+                y_input += 1;
+            }
+            if(input & J_LEFT)
+            {
+                x_input -= 1;
+            }
+            if (input & J_RIGHT)
+            {
+                x_input += 1;
+            }
+            if(x_input || y_input){
+                move_cursor(x_input, y_input);
+            }
+        }
+        delay(120u);
+    };
+}
+
+int survives(unsigned int x, unsigned int y, char* data)
+{
+    unsigned int x_nw, x_n, x_ne, x_e, x_se, x_s, x_sw, x_w;
+    unsigned int y_nw, y_n, y_ne, y_e, y_se, y_s, y_sw, y_w;
+    int i = 0;
+    if(x == 0u)
+    {
+        x_sw = MAX_FIELD_WIDTH - 1u;
+        x_nw = MAX_FIELD_WIDTH - 1u;
+        x_w = MAX_FIELD_WIDTH - 1u; 
+    } else {
+        x_sw = x - 1u;
+        x_nw = x - 1u;
+        x_w = x - 1u; 
+    }
+    x_n = x;
+    x_s = x;
+
+    x_ne = x + 1u;
+    x_e = x + 1u;
+    x_se = x + 1u;
+
+    if(y == 0u)
+    {
+        y_nw = MAX_FIELD_DEPTH - 1u; 
+        y_n = MAX_FIELD_DEPTH - 1u;
+        y_ne = MAX_FIELD_DEPTH - 1u;
+    } else {
+        y_nw = y - 1u;
+        y_n = y - 1u;
+        y_ne = y - 1u;
+    }
+    y_w = y;
+    y_e = y;
+
+    y_sw = y + 1u;
+    y_s = y + 1u; 
+    y_se = y + 1u;
+
+    unsigned int neighbours [][] = {
+        {x_nw, y_nw}, {x_n, y_n}, {x_ne, y_ne},
+        {x_w, y_w},/*            */{x_e, y_e},
+        {x_sw, y_sw}, {x_s, y_s}, {x_se, y_se}
+    };
+    int living_neighbors = 0;
+    for(i = 0; i < 8; i++)
+    {
+        if(get_cell(data, neighbours[i][0], neighbours[i][1]) != 0u)
+        {
+            living_neighbors++;
+        }
+    }
+    
+    if(get_cell(data, x, y))
+    {
+        // original cell is alive
+        if(living_neighbors == 2u || living_neighbors == 3u){
+            return 1;
+        }
+        return 0;
+    } else {
+        // Original cell is dead
+        if(living_neighbors == 3u){
+            return 1;
+        };
+        return 0;
+    };
+
 }
 
 void main(void)
@@ -244,7 +350,6 @@ void main(void)
     };
     SHOW_BKG;
     delay(1000u);
-    HIDE_BKG;
     i = 0;
     HIDE_SPRITES;
     for(i; i < 32; i++)
@@ -260,37 +365,26 @@ void main(void)
         j = 0;
     };
     i = 0;
+
+    survives(1,1,cells_data);
+
+    for(i; i < 32; i++)
+    {
+        for(j; j < 32; j++)
+        {
+            if(survives(i,j, cells_data))
+            {   
+                set_bkg_tiles(i,j,1,1,life_tile_index);
+            } else {
+                set_bkg_tiles(i,j,1,1,no_life_tile_index);
+            }
+        };
+        j = 0;
+    };
+    i = 0;
+
     //printf("out");
     move_cursor(1u,1u);
     SHOW_BKG;
-    while(1){
-        x_input = 0;
-        y_input = 0;
-        input = joypad();
-        if(input & J_A){
-            delay(80u);
-            invert_cell();
-        } else{
-            if(input & J_UP)
-            {
-                y_input -= 1;
-            }
-            if (input & J_DOWN)
-            {
-                y_input += 1;
-            }
-            if(input & J_LEFT)
-            {
-                x_input -= 1;
-            }
-            if (input & J_RIGHT)
-            {
-                x_input += 1;
-            }
-            if(x_input || y_input){
-                move_cursor(x_input, y_input);
-            }
-        }
-        delay(120u);
-    };
+    edit_mode();
 }

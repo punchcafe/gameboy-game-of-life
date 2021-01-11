@@ -1,8 +1,5 @@
 #include "C:\Users\punchcafe\Projects\gamboy-game-of-life\field_handler.h"
 
-#define MAX_FIELD_WIDTH 10
-#define MAX_FIELD_DEPTH 10
-
 #define MASK_00000001 0x01
 #define MASK_00000010 0x02
 #define MASK_00000100 0x04
@@ -120,9 +117,12 @@ unsigned int get_cell(unsigned char * data, unsigned int x, unsigned int y)
 
 
 void set_cell_high(unsigned char * data, unsigned int x, unsigned int y){
-    int block_index = get_block_index(x,y);
-    unsigned int x_off = offset_from_block(x);
-    unsigned int y_off = offset_from_block(y);
+    Coords coords;
+    assign_coords(x, y, &coords);
+    adjust_coordinates_for_limits(&coords);
+    int block_index = get_block_index(coords.x,coords.y);
+    unsigned int x_off = offset_from_block(coords.x);
+    unsigned int y_off = offset_from_block(coords.y);
     unsigned int mask = get_single_bit_mask(x_off, y_off);
     unsigned char existingData;
     unsigned char result;
@@ -137,9 +137,12 @@ void set_cell_high(unsigned char * data, unsigned int x, unsigned int y){
 }
 
 void set_cell_low(unsigned char * data, unsigned int x, unsigned int y){
-    int block_index = get_block_index(x,y);
-    unsigned int x_off = offset_from_block(x);
-    unsigned int y_off = offset_from_block(y);
+    Coords coords;
+    assign_coords(x, y, &coords);
+    adjust_coordinates_for_limits(&coords);
+    int block_index = get_block_index(coords.x,coords.y);
+    unsigned int x_off = offset_from_block(coords.x);
+    unsigned int y_off = offset_from_block(coords.y);
     unsigned int mask =  get_seven_bit_mask(x_off, y_off);
     unsigned char existingData;
     unsigned char result;
