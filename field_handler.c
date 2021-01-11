@@ -1,5 +1,8 @@
 #include "C:\Users\punchcafe\Projects\gamboy-game-of-life\field_handler.h"
 
+#define MAX_FIELD_WIDTH 10
+#define MAX_FIELD_DEPTH 10
+
 #define MASK_00000001 0x01
 #define MASK_00000010 0x02
 #define MASK_00000100 0x04
@@ -17,6 +20,23 @@
 #define MASK_11011111 0xDF
 #define MASK_10111111 0xBF
 #define MASK_01111111 0x7F
+
+typedef struct coords {
+    unsigned int x;
+    unsigned int y;
+} Coords;
+
+void assign_coords(unsigned int x, unsigned int y,  Coords * coords)
+{
+    coords->x = x;
+    coords->y = y;
+}
+
+void adjust_coordinates_for_limits( Coords * coords)
+{
+    coords->x = coords->x % MAX_FIELD_WIDTH;
+    coords->y = coords->y % MAX_FIELD_WIDTH;
+}
 
 unsigned int calculate_cell_block(unsigned int coord){
     // Since cell blocks are 4x4 (square), the same method may be used to calculate 
@@ -89,9 +109,12 @@ unsigned int get_cell_for_block(unsigned char * block_start, unsigned int x_off,
 
 unsigned int get_cell(unsigned char * data, unsigned int x, unsigned int y)
 {
-    unsigned int block_index = get_block_index(x,y);
-    unsigned int x_off = offset_from_block(x);
-    unsigned int y_off = offset_from_block(y);
+    Coords coords;
+    assign_coords(x, y, &coords);
+    adjust_coordinates_for_limits(&coords);
+    unsigned int block_index = get_block_index(coords.x, coords.y);
+    unsigned int x_off = offset_from_block(coords.x);
+    unsigned int y_off = offset_from_block(coords.y);
     return get_cell_for_block(&data[block_index], x_off, y_off);
 }
 
