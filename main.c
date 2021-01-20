@@ -19,6 +19,13 @@ const unsigned char background_data [] = {
     0x81,0x83,0x42,0x66,0x66,0x76,0x18,0x18
 };
 
+unsigned char data_block_1 [128];
+unsigned char data_block_2 [128];
+
+unsigned char * present_data = data_block_1;
+unsigned char * next_data = data_block_2;
+
+
 unsigned char cells_data [] = {
 
     /*
@@ -138,11 +145,11 @@ unsigned int x_input = 0;
 unsigned int y_input = 0;
 // needed because of mid scope initialisation bugs
 
-//enum game_state {start_screen, cell_select, play};
+enum game_state_enum {edit_mode, play_mode} game_state;
 
 void move_cursor(unsigned int x_move, unsigned int y_move){
     unsigned int is_destination_cell_alive;
-    unsigned int is_origin_cell_alive = get_cell(cells_data, cursor_x, cursor_y);
+    unsigned int is_origin_cell_alive = get_cell(present_data, cursor_x, cursor_y);
     if(is_origin_cell_alive){
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_tile_index);
     } else {
@@ -150,7 +157,7 @@ void move_cursor(unsigned int x_move, unsigned int y_move){
     }
     cursor_x += x_move;
     cursor_y += y_move;
-    is_destination_cell_alive = get_cell(cells_data, cursor_x, cursor_y);
+    is_destination_cell_alive = get_cell(present_data, cursor_x, cursor_y);
     if(is_destination_cell_alive){
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
     } else {
@@ -159,52 +166,71 @@ void move_cursor(unsigned int x_move, unsigned int y_move){
 }
 
 void invert_cell(){
-    if(get_cell(cells_data, cursor_x, cursor_y))
+    if(get_cell(present_data, cursor_x, cursor_y))
     {
         // Cell is set high
-        set_cell_low(cells_data, cursor_x, cursor_y);
+        set_cell_low(present_data, cursor_x, cursor_y);
         // Consider having a reader/writer method, instead of letting draw directly, so that 
         // screen is always consistent with model at low CPU expense
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
     } else {
         // Cell is set low
-        set_cell_high(cells_data, cursor_x, cursor_y);
+        set_cell_high(present_data, cursor_x, cursor_y);
         set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
     }
 }
 
-void edit_mode()
-{
-    while(1){
-        x_input = 0;
-        y_input = 0;
-        input = joypad();
-        if(input & J_A){
-            delay(80u);
-            invert_cell();
-        } else{
-            if(input & J_UP)
-            {
-                y_input -= 1;
+
+void render_background(unsigned char * data){
+    int i;
+    int j;
+    for(i; i < MAX_FIELD_WIDTH; i++)
+    {
+        for(j; j < MAX_FIELD_DEPTH; j++)
+        {
+            if(get_cell(data, i,j))
+            {   
+                set_bkg_tiles(i,j,1,1,life_tile_index);
+            } else {
+                set_bkg_tiles(i,j,1,1,no_life_tile_index);
             }
-            if (input & J_DOWN)
-            {
-                y_input += 1;
-            }
-            if(input & J_LEFT)
-            {
-                x_input -= 1;
-            }
-            if (input & J_RIGHT)
-            {
-                x_input += 1;
-            }
-            if(x_input || y_input){
-                move_cursor(x_input, y_input);
-            }
-        }
-        delay(120u);
+        };
+        j = 0;
     };
+    i = 0;
+}
+
+void run_edit_mode()
+{
+    
+    x_input = 0;
+    y_input = 0;
+    input = joypad();
+    if(input & J_A){
+        delay(80u);
+        invert_cell();
+    } else{
+        if(input & J_UP)
+        {
+            y_input -= 1;
+        }
+        if (input & J_DOWN)
+        {
+            y_input += 1;
+        }
+        if(input & J_LEFT)
+        {
+            x_input -= 1;
+        }
+        if (input & J_RIGHT)
+        {
+            x_input += 1;
+        }
+        if(x_input || y_input){
+            move_cursor(x_input, y_input);
+        }
+    }
+    delay(60u);
 }
 
 int survives(unsigned int x, unsigned int y, char* data)
@@ -254,22 +280,28 @@ int survives(unsigned int x, unsigned int y, char* data)
     int living_neighbors = 0;
     for(i = 0; i < 8; i++)
     {
-        if(get_cell(data, neighbours[i][0], neighbours[i][1]) != 0u)
+        if(get_cell(data, neighbours[i][0], neighbours[i][1]) > 0)
         {
             living_neighbors++;
         }
     }
+
+    if(living_neighbors > 0){
+        //printf("location: %u,%u, living neightbors: %d", x, y, living_neighbors);
+    }
     
-    if(get_cell(data, x, y))
+    if(get_cell(data, x, y) > 0u)
     {
         // original cell is alive
-        if(living_neighbors == 2u || living_neighbors == 3u){
+        if(living_neighbors == 2 || living_neighbors == 3){
+            //printf("survive");
             return 1;
         }
         return 0;
     } else {
         // Original cell is dead
-        if(living_neighbors == 3u){
+        if(living_neighbors == 3){
+            //printf("back from the dead");
             return 1;
         };
         return 0;
@@ -277,114 +309,74 @@ int survives(unsigned int x, unsigned int y, char* data)
 
 }
 
+void iterate_life(unsigned char * present, unsigned char * next)
+{
+    int i = 0;
+    int j = 0;
+    for(i; i < MAX_FIELD_WIDTH; i++)
+    {
+        for(j; j < MAX_FIELD_DEPTH; j++)
+        {
+            if(survives(i,j, present))
+            {   
+                set_cell_high(next, i,j);
+            } else {
+                set_cell_low(next, i,j);
+            }
+        };
+        j = 0;
+    };
+}
+
+
+void run_play_mode()
+{
+    //printf("next: %d present %d", next_data, present_data);
+    unsigned char * temp;
+    render_background(present_data);
+    iterate_life(present_data, next_data);
+    temp = present_data;
+    present_data = next_data;
+    next_data = temp;
+}
+
+void switch_game_mode() 
+{
+    if(game_state == play_mode)
+    {
+        game_state = edit_mode;
+    } else {
+        game_state = play_mode;
+    }
+    render_background(present_data);
+}
+
 void main(void)
 {
-    unsigned int block_index;
-
-    font_t ibm_font, italic_font, min_font;
-    font_init();
-
-    ibm_font = font_load(font_ibm);  /* 96 tiles */
-    font_set(ibm_font);
-    /* First, init the font system */
-
-    //font_t ibm_font, italic_font, min_font;
-
-
-    HIDE_WIN;
-    //SPRITES_8x16;   
+    int i;
+    game_state = edit_mode;
+    for(i = 0; i< 128; i++)
+    {
+        data_block_1[i] = 0x00;
+        data_block_2[i] = 0x00;
+    }
     set_bkg_data(0x00, 0x04, background_data);
-
-    for(i = 0; i < 32; i++)
-        for(j = 0; j < 32; j++)
-            set_bkg_tiles(i, j, 1, 1, no_life_tile_index);
-    i = 0;
-    j=0;
-    //set_bkg_data(0x00, 0x02, &background_data[16]);
-
-    /* Load all the fonts that we can */
-    //ibm_font = font_load(font_ibm);  /* 96 tiles */
-    //italic_font = font_load(font_italic);   /* 93 tiles */
-    
-    /* Load this one with dk grey background and white foreground */
-    //color(WHITE, DKGREY, SOLID);
-    
-    //line(0x04,0x04, 0x40, 0x04);
-    //delay(100Lu);
-
-    //min_font = font_load(font_min);
-
-    /* Turn scrolling off (why not?) */
-    //mode(get_mode() | M_NO_SCROLL);
-
-    /* Print some text! */
-    
-    /* IBM font */
-    //font_set(ibm_font);
-    //printf("Font demo.\n\n");
-
-    HIDE_BKG;
-
-    set_cell_high(cells_data, 0,0);
-    set_cell_high(cells_data, 0,1);
-    set_cell_high(cells_data, 0,2);
-    set_cell_high(cells_data, 0,3);
-    set_cell_high(cells_data, 1,0);
-    set_cell_high(cells_data, 1,1);
-    set_cell_high(cells_data, 1,2);
-    set_cell_high(cells_data, 3,3);
-    set_cell_high(cells_data, 2,5);
-    set_cell_high(cells_data, 5,2);
-    set_cell_high(cells_data, 10,10);
-
-    for(i; i < 32; i++)
-    {
-        for(j; j < 32; j++)
-        {
-            if(get_cell(cells_data, i,j))
-            {
-                set_bkg_tiles(i,j,1,1,life_tile_index);
-            }
-        };
-        j = 0;
-    };
+    render_background(present_data);
     SHOW_BKG;
-    delay(1000u);
-    i = 0;
-    HIDE_SPRITES;
-    for(i; i < 32; i++)
-    {
-        for(j; j < 32; j++)
+    while(1){
+        if(joypad() & J_START)
         {
-            if(get_cell(cells_data, i,j))
-            {   
-                //printf("hi");
-                set_bkg_tiles(i,j,1,1,life_tile_index);
-            }
-        };
-        j = 0;
-    };
-    i = 0;
-
-    survives(1,1,cells_data);
-
-    for(i; i < 32; i++)
-    {
-        for(j; j < 32; j++)
+            switch_game_mode();
+        }
+        switch (game_state)
         {
-            if(survives(i,j, cells_data))
-            {   
-                set_bkg_tiles(i,j,1,1,life_tile_index);
-            } else {
-                set_bkg_tiles(i,j,1,1,no_life_tile_index);
-            }
-        };
-        j = 0;
-    };
-    i = 0;
-
-    //printf("out");
-    move_cursor(1u,1u);
-    SHOW_BKG;
-    edit_mode();
+        case edit_mode:
+            run_edit_mode();
+            break;
+        
+        case play_mode:
+            run_play_mode();
+            break;
+        }
+    }
 }

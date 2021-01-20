@@ -18,6 +18,8 @@
 #define MASK_10111111 0xBF
 #define MASK_01111111 0x7F
 
+#define MASK_11110000 0xF0
+
 typedef struct coords {
     unsigned int x;
     unsigned int y;
@@ -86,6 +88,8 @@ unsigned int get_seven_bit_mask(unsigned int x_off, unsigned int y_off){
     if(y_off == 0x01 || y_off == 0x03){
         // In second half of char
         mask = mask >> 4;
+        // fill new gaps from shifting
+        mask = mask | MASK_11110000;
     }
     return mask;
 }
@@ -120,7 +124,7 @@ void set_cell_high(unsigned char * data, unsigned int x, unsigned int y){
     Coords coords;
     assign_coords(x, y, &coords);
     adjust_coordinates_for_limits(&coords);
-    int block_index = get_block_index(coords.x,coords.y);
+    unsigned int block_index = get_block_index(coords.x,coords.y);
     unsigned int x_off = offset_from_block(coords.x);
     unsigned int y_off = offset_from_block(coords.y);
     unsigned int mask = get_single_bit_mask(x_off, y_off);
@@ -140,7 +144,7 @@ void set_cell_low(unsigned char * data, unsigned int x, unsigned int y){
     Coords coords;
     assign_coords(x, y, &coords);
     adjust_coordinates_for_limits(&coords);
-    int block_index = get_block_index(coords.x,coords.y);
+    unsigned int block_index = get_block_index(coords.x,coords.y);
     unsigned int x_off = offset_from_block(coords.x);
     unsigned int y_off = offset_from_block(coords.y);
     unsigned int mask =  get_seven_bit_mask(x_off, y_off);
