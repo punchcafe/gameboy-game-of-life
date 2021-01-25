@@ -165,6 +165,16 @@ void move_cursor(unsigned int x_move, unsigned int y_move){
     }
 }
 
+void render_cursor_to_current(){
+    if(get_cell(present_data, cursor_x, cursor_y))
+    {
+        set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
+    } else 
+    {
+        set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
+    }
+}
+
 void invert_cell(){
     if(get_cell(present_data, cursor_x, cursor_y))
     {
@@ -202,7 +212,7 @@ void render_background(unsigned char * data){
 
 void run_edit_mode()
 {
-    
+    render_cursor_to_current();
     x_input = 0;
     y_input = 0;
     input = joypad();
@@ -317,6 +327,11 @@ void iterate_life(unsigned char * present, unsigned char * next)
     {
         for(j; j < MAX_FIELD_DEPTH; j++)
         {
+            if(joypad() & J_START){
+                switch_game_mode();
+                delay(100u);
+                return;
+            }
             if(survives(i,j, present))
             {   
                 set_cell_high(next, i,j);
@@ -335,6 +350,11 @@ void run_play_mode()
     unsigned char * temp;
     render_background(present_data);
     iterate_life(present_data, next_data);
+    if(game_state == edit_mode)
+    {
+        // Gamestate has been exited early due to player input, and we want to abandon the current game
+        return;
+    }
     temp = present_data;
     present_data = next_data;
     next_data = temp;
