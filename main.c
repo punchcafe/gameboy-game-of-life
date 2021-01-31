@@ -5,6 +5,9 @@
 #include "C:\Users\punchcafe\Projects\gamboy-game-of-life\field_handler.h"
 
 const unsigned char background_data [] = {
+    //white-tile
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
+    0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
     // No Life (index 0)
     0xFF,0xFF,0x7F,0xFF,0xFE,0xFF,0xFF,0xFF,
     0xFF,0xFF,0xFF,0xFF,0xBF,0xFD,0xFF,0xFF,
@@ -129,10 +132,10 @@ unsigned char cells_data [] = {
 };
 
 // convert to directive
-const unsigned char no_life_tile_index [] = { 0x00 };
-const unsigned char life_tile_index [] = { 0x01 };
-const unsigned char no_life_selected_tile_index [] = { 0x02 };
-const unsigned char life_selected_tile_index [] = { 0x03 };
+const unsigned char no_life_tile_index [] = { 0x01 };
+const unsigned char life_tile_index [] = { 0x02 };
+const unsigned char no_life_selected_tile_index [] = { 0x03 };
+const unsigned char life_selected_tile_index [] = { 0x04 };
 
 int cursor_x = 0;
 int cursor_y = 0;
@@ -406,7 +409,7 @@ void main(void)
         data_block_1[i] = 0x00;
         data_block_2[i] = 0x00;
     }
-    set_bkg_data(0x00, 0x04, background_data);
+    set_bkg_data(0x00, 0x05, background_data);
     render_background(present_data);
     SHOW_BKG;
     while(1){
