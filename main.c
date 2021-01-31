@@ -134,8 +134,8 @@ const unsigned char life_tile_index [] = { 0x01 };
 const unsigned char no_life_selected_tile_index [] = { 0x02 };
 const unsigned char life_selected_tile_index [] = { 0x03 };
 
-int cursor_x = 10;
-int cursor_y = 10;
+int cursor_x = 0;
+int cursor_y = 0;
 
 int i = 0;
 int j = 0;
@@ -147,31 +147,56 @@ unsigned int y_input = 0;
 
 enum game_state_enum {edit_mode, play_mode} game_state;
 
-void move_cursor(unsigned int x_move, unsigned int y_move){
+/*
+    Sets a tile in the 'pitch', allowing rendering pitch dimensions without considering border.
+*/
+void set_pitch_tile(unsigned int x, unsigned int y, unsigned char * tile_table_index)
+{
+    unsigned int x_offset = x + BORDER_WIDTH;
+    unsigned int y_offset = y + BORDER_WIDTH;
+    set_bkg_tiles(x_offset, y_offset, 1, 1, tile_table_index);
+}
+
+void clamp_value( int * value,  int min,  int max )
+{
+    if(*value < min)
+    {
+        *value = min;
+    } else if (*value > max)
+    {
+         *value  = max;
+    }
+}
+
+void move_cursor(int x_move, int y_move){
     unsigned int is_destination_cell_alive;
     unsigned int is_origin_cell_alive = get_cell(present_data, cursor_x, cursor_y);
     if(is_origin_cell_alive){
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, life_tile_index);
     } else {
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, no_life_tile_index);
     }
     cursor_x += x_move;
     cursor_y += y_move;
+    clamp_value(&cursor_x, 0, MAX_FIELD_WIDTH - 1);
+    clamp_value(&cursor_y, 0, MAX_FIELD_DEPTH - 1);
     is_destination_cell_alive = get_cell(present_data, cursor_x, cursor_y);
     if(is_destination_cell_alive){
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, life_selected_tile_index);
     } else {
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, no_life_selected_tile_index);
     }
 }
+
+
 
 void render_cursor_to_current(){
     if(get_cell(present_data, cursor_x, cursor_y))
     {
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, life_selected_tile_index);
     } else 
     {
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, no_life_selected_tile_index);
     }
 }
 
@@ -182,13 +207,14 @@ void invert_cell(){
         set_cell_low(present_data, cursor_x, cursor_y);
         // Consider having a reader/writer method, instead of letting draw directly, so that 
         // screen is always consistent with model at low CPU expense
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, no_life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, no_life_selected_tile_index);
     } else {
         // Cell is set low
         set_cell_high(present_data, cursor_x, cursor_y);
-        set_bkg_tiles(cursor_x, cursor_y, 1, 1, life_selected_tile_index);
+        set_pitch_tile(cursor_x, cursor_y, life_selected_tile_index);
     }
 }
+
 
 
 void render_background(unsigned char * data){
@@ -200,9 +226,9 @@ void render_background(unsigned char * data){
         {
             if(get_cell(data, i,j))
             {   
-                set_bkg_tiles(i,j,1,1,life_tile_index);
+                set_pitch_tile(i,j,life_tile_index);
             } else {
-                set_bkg_tiles(i,j,1,1,no_life_tile_index);
+                set_pitch_tile(i,j,no_life_tile_index);
             }
         };
         j = 0;

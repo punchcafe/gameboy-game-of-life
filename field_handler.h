@@ -1,5 +1,6 @@
-#define MAX_FIELD_WIDTH 32
-#define MAX_FIELD_DEPTH 32
+#define BORDER_WIDTH 2;
+#define MAX_FIELD_WIDTH 16
+#define MAX_FIELD_DEPTH 14
 
 unsigned int get_cell(unsigned char * data, unsigned int x, unsigned int y);
 
