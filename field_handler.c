@@ -20,6 +20,40 @@
 
 #define MASK_11110000 0xF0
 
+unsigned int BORDER_WIDTH  = 5u;
+unsigned int MAX_FIELD_WIDTH = 10u;
+unsigned int MAX_FIELD_DEPTH = 8u;
+
+unsigned int get_max_field_width(){
+    return MAX_FIELD_WIDTH;
+}
+
+unsigned int get_max_field_depth(){
+    return MAX_FIELD_DEPTH;
+}
+
+unsigned int get_border_width(){
+    return BORDER_WIDTH;
+}
+
+void set_field_L(){
+    BORDER_WIDTH = 2u;
+    MAX_FIELD_WIDTH = 16u;
+    MAX_FIELD_DEPTH = 14u;
+}
+
+void set_field_M(){
+    BORDER_WIDTH = 4u;
+    MAX_FIELD_WIDTH = 12u;
+    MAX_FIELD_DEPTH = 10u;
+}
+
+void set_field_S(){
+    BORDER_WIDTH = 6u;
+    MAX_FIELD_WIDTH = 8u;
+    MAX_FIELD_DEPTH = 6u;
+}
+
 typedef struct coords {
     unsigned int x;
     unsigned int y;
@@ -34,7 +68,7 @@ void assign_coords(unsigned int x, unsigned int y,  Coords * coords)
 void adjust_coordinates_for_limits( Coords * coords)
 {
     coords->x = coords->x % MAX_FIELD_WIDTH;
-    coords->y = coords->y % MAX_FIELD_WIDTH;
+    coords->y = coords->y % MAX_FIELD_DEPTH;
 }
 
 unsigned int calculate_cell_block(unsigned int coord){

@@ -5,6 +5,11 @@
 #include <gb/font.h>
 #include "C:\Users\punchcafe\Projects\gamboy-game-of-life\field_handler.h"
 
+/*
+refactor notes:
+hide all cell data behind field handler, rename field?
+*/
+
 const unsigned char background_data [] = {
     //white-tile
     0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,
@@ -23,8 +28,28 @@ const unsigned char background_data [] = {
     0x81,0x83,0x42,0x66,0x66,0x76,0x18,0x18
 };
 
-unsigned char data_block_1 [128];
-unsigned char data_block_2 [128];
+#define DATA_BLOCK_SIZE 128
+
+unsigned char data_block_1 [DATA_BLOCK_SIZE];
+unsigned char data_block_2 [DATA_BLOCK_SIZE];
+
+void clear_data_block(char * data_block){
+    int i;
+    for(i = 0; i <DATA_BLOCK_SIZE; i++)
+    {
+        data_block[i] = 0x00;
+    }
+}
+
+void clear_data_block_1()
+{
+    clear_data_block(data_block_1);
+}
+
+void clear_data_block_2()
+{
+    clear_data_block(data_block_2);
+}
 
 unsigned char * present_data = data_block_1;
 unsigned char * next_data = data_block_2;
@@ -156,8 +181,8 @@ enum game_state_enum {edit_mode, play_mode} game_state;
 */
 void set_pitch_tile(unsigned int x, unsigned int y, unsigned char * tile_table_index)
 {
-    unsigned int x_offset = x + BORDER_WIDTH;
-    unsigned int y_offset = y + BORDER_WIDTH;
+    unsigned int x_offset = x + get_border_width();
+    unsigned int y_offset = y + get_border_width();
     set_win_tiles(x_offset, y_offset, 1, 1, tile_table_index);
 }
 
@@ -182,8 +207,8 @@ void move_cursor(int x_move, int y_move){
     }
     cursor_x += x_move;
     cursor_y += y_move;
-    clamp_value(&cursor_x, 0, MAX_FIELD_WIDTH - 1);
-    clamp_value(&cursor_y, 0, MAX_FIELD_DEPTH - 1);
+    clamp_value(&cursor_x, 0, get_max_field_width() - 1);
+    clamp_value(&cursor_y, 0, get_max_field_depth() - 1);
     is_destination_cell_alive = get_cell(present_data, cursor_x, cursor_y);
     if(is_destination_cell_alive){
         set_pitch_tile(cursor_x, cursor_y, life_selected_tile_index);
@@ -224,9 +249,9 @@ void invert_cell(){
 void render_field(unsigned char * data){
     int i;
     int j;
-    for(i; i < MAX_FIELD_WIDTH; i++)
+    for(i; i < get_max_field_width(); i++)
     {
-        for(j; j < MAX_FIELD_DEPTH; j++)
+        for(j; j < get_max_field_depth(); j++)
         {
             if(get_cell(data, i,j))
             {   
@@ -280,9 +305,9 @@ int survives(unsigned int x, unsigned int y, char* data)
     int i = 0;
     if(x == 0u)
     {
-        x_sw = MAX_FIELD_WIDTH - 1u;
-        x_nw = MAX_FIELD_WIDTH - 1u;
-        x_w = MAX_FIELD_WIDTH - 1u; 
+        x_sw = get_max_field_width() - 1u;
+        x_nw = get_max_field_width() - 1u;
+        x_w = get_max_field_width() - 1u; 
     } else {
         x_sw = x - 1u;
         x_nw = x - 1u;
@@ -297,9 +322,9 @@ int survives(unsigned int x, unsigned int y, char* data)
 
     if(y == 0u)
     {
-        y_nw = MAX_FIELD_DEPTH - 1u; 
-        y_n = MAX_FIELD_DEPTH - 1u;
-        y_ne = MAX_FIELD_DEPTH - 1u;
+        y_nw = get_max_field_depth() - 1u; 
+        y_n = get_max_field_depth() - 1u;
+        y_ne = get_max_field_depth() - 1u;
     } else {
         y_nw = y - 1u;
         y_n = y - 1u;
@@ -353,9 +378,9 @@ void iterate_life(unsigned char * present, unsigned char * next)
 {
     int i = 0;
     int j = 0;
-    for(i; i < MAX_FIELD_WIDTH; i++)
+    for(i; i < get_max_field_width(); i++)
     {
-        for(j; j < MAX_FIELD_DEPTH; j++)
+        for(j; j < get_max_field_depth(); j++)
         {
             if(joypad() & J_START){
                 switch_game_mode();
@@ -405,6 +430,7 @@ void main(void)
 {
     int i;
     game_state = edit_mode;
+    set_field_S();
     for(i = 0; i< 128; i++)
     {
         data_block_1[i] = 0x00;
