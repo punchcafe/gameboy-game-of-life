@@ -20,9 +20,10 @@
 
 #define MASK_11110000 0xF0
 
-unsigned int BORDER_WIDTH  = 5u;
-unsigned int MAX_FIELD_WIDTH = 10u;
-unsigned int MAX_FIELD_DEPTH = 8u;
+
+unsigned int BORDER_WIDTH  = 2u;
+unsigned int MAX_FIELD_WIDTH = 16u;
+unsigned int MAX_FIELD_DEPTH = 14u;
 
 unsigned int get_max_field_width(){
     return MAX_FIELD_WIDTH;
@@ -52,6 +53,25 @@ void set_field_S(){
     BORDER_WIDTH = 6u;
     MAX_FIELD_WIDTH = 8u;
     MAX_FIELD_DEPTH = 6u;
+}
+
+unsigned int field_size_index = 0u;
+
+/*
+    Allows for cycling through field sizes.
+*/
+void set_next_field_size(){
+    if(field_size_index == 0u)
+    {
+        set_field_M();
+        field_size_index++;
+    } else if(field_size_index == 1u) {
+        set_field_S();
+        field_size_index++;
+    } else {
+        set_field_L();
+        field_size_index = 0u;
+    }
 }
 
 typedef struct coords {

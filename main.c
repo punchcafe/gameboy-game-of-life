@@ -158,6 +158,7 @@ unsigned char cells_data [] = {
 };
 
 // convert to directive
+const unsigned char blank_tile_index [] = { 0x00 };
 const unsigned char no_life_tile_index [] = { 0x01 };
 const unsigned char life_tile_index [] = { 0x02 };
 const unsigned char no_life_selected_tile_index [] = { 0x03 };
@@ -265,12 +266,36 @@ void render_field(unsigned char * data){
     i = 0;
 }
 
+void clear_canvas(){
+    int i;
+    int j;
+    for(i; i < 32; i++)
+    {
+        for(j; j < 32; j++)
+        {
+            set_win_tiles(i,j,1,1,blank_tile_index);
+        };
+        j = 0;
+    };
+    i = 0;
+}
+
 void run_edit_mode()
 {
     render_cursor_to_current();
     x_input = 0;
     y_input = 0;
     input = joypad();
+    if(input & J_SELECT)
+        {
+            set_next_field_size();
+            clear_data_block_1();
+            clear_data_block_2();
+            clear_canvas();
+            render_field(present_data);
+            delay(100u);
+            return;
+        }
     if(input & J_A){
         delay(80u);
         invert_cell();
@@ -430,7 +455,6 @@ void main(void)
 {
     int i;
     game_state = edit_mode;
-    set_field_S();
     for(i = 0; i< 128; i++)
     {
         data_block_1[i] = 0x00;
