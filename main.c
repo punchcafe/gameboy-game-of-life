@@ -1,5 +1,6 @@
 
 #include <gb/gb.h>
+#include <gb/console.h>
 #include<stdio.h>
 #include <gb/font.h>
 #include "C:\Users\punchcafe\Projects\gamboy-game-of-life\field_handler.h"
@@ -157,7 +158,7 @@ void set_pitch_tile(unsigned int x, unsigned int y, unsigned char * tile_table_i
 {
     unsigned int x_offset = x + BORDER_WIDTH;
     unsigned int y_offset = y + BORDER_WIDTH;
-    set_bkg_tiles(x_offset, y_offset, 1, 1, tile_table_index);
+    set_win_tiles(x_offset, y_offset, 1, 1, tile_table_index);
 }
 
 void clamp_value( int * value,  int min,  int max )
@@ -220,7 +221,7 @@ void invert_cell(){
 
 
 
-void render_background(unsigned char * data){
+void render_field(unsigned char * data){
     int i;
     int j;
     for(i; i < MAX_FIELD_WIDTH; i++)
@@ -377,7 +378,7 @@ void run_play_mode()
 {
     //printf("next: %d present %d", next_data, present_data);
     unsigned char * temp;
-    render_background(present_data);
+    render_field(present_data);
     iterate_life(present_data, next_data);
     if(game_state == edit_mode)
     {
@@ -397,7 +398,7 @@ void switch_game_mode()
     } else {
         game_state = play_mode;
     }
-    render_background(present_data);
+    render_field(present_data);
 }
 
 void main(void)
@@ -409,9 +410,13 @@ void main(void)
         data_block_1[i] = 0x00;
         data_block_2[i] = 0x00;
     }
-    set_bkg_data(0x00, 0x05, background_data);
-    render_background(present_data);
+    set_win_data(0x00, 0x05, background_data);
+    render_field(present_data);
     SHOW_BKG;
+    SHOW_WIN;
+    //gotoxy(0x01, 0x10);
+    //setchar('k');
+    //printf("lol!%d", 1);
     while(1){
         if(joypad() & J_START)
         {
