@@ -177,15 +177,6 @@ unsigned int y_input = 0;
 
 enum game_state_enum {edit_mode, play_mode} game_state;
 
-/*
-    Sets a tile in the 'pitch', allowing rendering pitch dimensions without considering border.
-*/
-void set_pitch_tile(unsigned int x, unsigned int y, unsigned char * tile_table_index)
-{
-    unsigned int x_offset = x + get_border_width();
-    unsigned int y_offset = y + get_border_width();
-    set_win_tiles(x_offset, y_offset, 1, 1, tile_table_index);
-}
 
 void clamp_value( int * value,  int min,  int max )
 {
@@ -196,6 +187,18 @@ void clamp_value( int * value,  int min,  int max )
     {
          *value  = max;
     }
+}
+
+/*
+    Sets a tile in the 'pitch', allowing rendering pitch dimensions without considering border.
+*/
+void set_pitch_tile(unsigned int x, unsigned int y, unsigned char * tile_table_index)
+{
+    unsigned int x_offset = x + get_border_width();
+    unsigned int y_offset = y + get_border_width();
+    clamp_value(&x_offset, 0, get_max_field_width() + get_border_width() - 1);
+    clamp_value(&y_offset, 0, get_max_field_depth() + get_border_width() - 1);
+    set_win_tiles(x_offset, y_offset, 1, 1, tile_table_index);
 }
 
 void move_cursor(int x_move, int y_move){
